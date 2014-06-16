@@ -172,9 +172,9 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
     for t in range(1, keys_approx.shape[0]):
       current = keys_approx[t,0]
       prev = keys_approx[t-1,0]
-      # in the meantime, just put any that are different up
       # TODO: set up threshold experiment to check for % difference in key change
       if current != prev:
+        # in the meantime, just put any that are different up
         keys_final = np.vstack((keys_final, np.array([[current]])))
         times_final = np.vstack((times_final, np.array([[times_used[t,0]]])))
 
