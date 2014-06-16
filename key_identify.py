@@ -8,7 +8,7 @@ import numpy as np
 import midi
 import os
 import sys
-
+import time
 
 def make_chroma_vector(chroma_slice):
   """Returns chroma vector of sums from starting time to ending time"""
@@ -49,7 +49,7 @@ def get_key_score(chroma_vector, keys, key_index):
 def load_keys():
   """ Returns arrays of the weighted keys, and the corresponding names of them """
   #Building of weighted vectors
-  if not os.path.exists("key_base_info"):
+  if not os.path.exists("key_base_info.npz"):
     print "Building default array- major keys only"
     key_weight = np.array([[ 3, -1,  1, -1,  2,  1, -1,  2, -1,  1, -1,  2]])
     key_weight = np.vstack((key_weight,np.array([[2,  3, -1,  1, -1,  2,  1, -1,  2, -1,  1, -1]])))
@@ -65,7 +65,7 @@ def load_keys():
     key_weight = np.vstack((key_weight,np.array([[-1,  1, -1,  2,  1, -1,  2, -1,  1, -1,  2,  3]])))
     names = np.array([['C-Maj', 'C#-Maj', 'D-Maj', 'D#-Maj', 'E-Maj', 'F-Maj','F#-Maj','G-Maj','G#-Maj', 'A-Maj', 'A#-Maj','B-Maj']])
     np.savez("key_base_info", key_weight, names)
-  npzfile = np.load("key_base_info")
+  npzfile = np.load("key_base_info.npz")
   key_weight = npzfile['arr_0']
   names = npzfile['arr_1']
   #vector of key names (This version will use only major keys)
@@ -99,7 +99,7 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
 
 
 
-
+  key_weight, names = load_keys()
   #get Chroma features
   chroma = song.get_chroma()
   #normalize chroma features
@@ -121,7 +121,7 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
   times_used = np.array([[times[0]]])
 
   if sectionBeats:
-    for t in range(1, times.size-1,m):
+    for t in range(1, times.size-1,measure_value):
     #make chroma slice based on time
       if times.size -t < measure_value:
         chroma_slice = chroma[:,round(times[t]*100):round(times[t+1]*100)]
@@ -143,15 +143,15 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
 
 
   # DUMMIED OUT CODE FOR FUTURE IMPLEMENTATION
-  # final_keys = np.array([[keys_approx[0,0],times[0,0]]]) #mark first
+  # final_keys = np.array([ [ keys_approx[0,0],times[0,0] ] ]) #mark first
   # print final_keys
   #
   # #iterate through rows of array- if there is a change, get % difference in scores for each key and use threshold to figure
   # #if it is a key change.  mark key change in final 2 column array of (key, time start)
   # threshold = .15 #experimental value
-  #
+  # 
   # if times.size > 1:
-  #   # print "going thru removal loop"
+  #   print "going thru removal loop"
   #   for t in range (1, keys_approx.shape[0]):
   #     current = keys_approx[t,0]
   #     prev = keys_approx[t-1,0]
@@ -172,14 +172,25 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
   #         final_keys = np.vstack((final_keys, arr))
   #       else:
   #         print "difference not large enough to constitute key change "
-  #
 
+  keys_approx = final_keys
   e = keys_approx.shape[0]
   if command_line_print:
     for i in range(0, e):
-      # print i
-      print "In key:",names[int(keys_approx[i,0])],"at time:", times_used[i,0]
+      key_int = int(keys_approx[i,0])
+      print "In key: ",names[0,key_int],"at time: ", times_used[i,0]
   if save_results:
-    filename_raw = os.path.splitext(midi_filename)[0]
-    np.savez(filename_raw+"_key_approximation", keys_approx = keys_approx, names = names)
+    filename = os.path.basename(midi_filename)
+    filename_raw = os.path.splitext(filename)[0]
+    # if not os.path.exists(directory):
+    dirname = "Results_of_key_approximation"
+    if not os.path.exists(dirname):
+      os.makedirs(dirname)
+    np.savez(dirname+"/"+filename_raw+"_key_approx-vars", keys_approx = keys_approx, names = names)
+    file_results = open(dirname+"/"+filename_raw+"_key_approx-text_form.txt",'w')
+    file_results.write(filename_raw+"\n")
+    for i in range(0, e):
+      key_int = int(keys_approx[i,0])
+      file_results.write("In key: "+names[0,key_int]+" at time: "+ str(times_used[i,0])+"\n")
+    file_results.close()
   return keys_approx, names
