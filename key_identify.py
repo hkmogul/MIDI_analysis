@@ -8,11 +8,9 @@ import numpy as np
 import midi
 import os
 import sys
-import time
 
 def make_chroma_vector(chroma_slice):
   """Returns chroma vector of sums from starting time to ending time"""
-  # print time_start, " to ", time_end
   chroma_vector = np.zeros((12,1))
   chroma_vector[0] = np.sum(chroma_slice[11,])
   for i in range(1,12):
@@ -21,9 +19,7 @@ def make_chroma_vector(chroma_slice):
 
 def get_approx_key(chroma_vector, keys):
   """Returns index of approximated key, and the score that this approximated key got"""
-  # chroma_vector = np.rot90(chroma_vector,3) #rotate vector from chroma to match key matrix
   chroma_vector = chroma_vector[:]
-  # print chroma_vector
   scores = []
   end = keys.shape[0] -1
   for i in range(0,end):
@@ -31,8 +27,6 @@ def get_approx_key(chroma_vector, keys):
     score = np.dot(key_vector,chroma_vector)
     scores.append(score)
   key_index = scores.index(max(scores))
-  # print key_index
-  # print max(scores)
   arr = np.array([[key_index, max(scores)]])
   return arr
 
@@ -40,7 +34,6 @@ def get_key_score(chroma_vector, keys, key_index):
   """Returns the score of an approximated key, given the index of the key weights to try out"""
   chroma_vector = np.rot90(chroma_vector,3)
   chroma_vector = chroma_vector[0,:]
-  # print chroma_vector
   key_vector = keys[key_index,:]
   score = np.dot(key_vector,chroma_vector)
   return score
@@ -149,7 +142,7 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
   # #iterate through rows of array- if there is a change, get % difference in scores for each key and use threshold to figure
   # #if it is a key change.  mark key change in final 2 column array of (key, time start)
   # threshold = .15 #experimental value
-  # 
+  #
   # if times.size > 1:
   #   print "going thru removal loop"
   #   for t in range (1, keys_approx.shape[0]):
