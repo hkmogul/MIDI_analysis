@@ -136,13 +136,16 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
 
 
   # DUMMIED OUT CODE FOR FUTURE IMPLEMENTATION
-  # final_keys = np.array([ [ keys_approx[0,0],times[0,0] ] ]) #mark first
-  # print final_keys
-  #
-  # #iterate through rows of array- if there is a change, get % difference in scores for each key and use threshold to figure
-  # #if it is a key change.  mark key change in final 2 column array of (key, time start)
-  # threshold = .15 #experimental value
-  #
+
+
+  #iterate through rows of array- if there is a change, get % difference in scores for each key and use threshold to figure
+  #if it is a key change.  mark key change in final 2 column array of (key, time start)
+  threshold = .15 #experimental value
+  keys_final = np.array([[keys_approx[0,0]]])
+
+  times_final = np.array([[times_used[0,0]]])
+
+
   # if times.size > 1:
   #   print "going thru removal loop"
   #   for t in range (1, keys_approx.shape[0]):
@@ -151,11 +154,11 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
   #     if not current == prev: #if not equal to previous, check % difference of scores
   #       print "In key change check"
   #       score1 = keys_approx[t,1] #score of key of this time slice
-  #       # print score1
-  #       vec = make_chroma_vector(chroma, round(times[0,t])*100,round(times[0,t+1])*100 )
-  #       # print vec
+  #       print score1
+  #       vec = make_chroma_vector(chroma, round(times[t,0]*100,round(times[t+1,0])*100 ))
+  #       print vec
   #       score2 = get_key_score(vec, key_weight, prev) #score it would have gotten with last input key
-  #       # print score2
+  #       print score2
   #       diff = abs(score1-score2)/(score1+score2)
   #       print diff
   #       if diff > threshold:
@@ -165,13 +168,22 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
   #         final_keys = np.vstack((final_keys, arr))
   #       else:
   #         print "difference not large enough to constitute key change "
+  if times.size > 1:
+    for t in range(1, keys_approx.shape[0]):
+      current = keys_approx[t,0]
+      prev = keys_approx[t-1,0]
+      # in the meantime, just put any that are different up
+      # TODO: set up threshold experiment to check for % difference in key change
+      if current != prev:
+        keys_final = np.vstack((keys_final, np.array([[current]])))
+        times_final = np.vstack((times_final, np.array([[times_used[t,0]]])))
 
-  keys_approx = final_keys
-  e = keys_approx.shape[0]
+
+  e = keys_final.shape[0]
   if command_line_print:
     for i in range(0, e):
-      key_int = int(keys_approx[i,0])
-      print "In key: ",names[0,key_int],"at time: ", times_used[i,0]
+      key_int = int(keys_final[i,0])
+      print "In key: ",names[0,key_int],"at time: ", times_final[i,0]
   if save_results:
     filename = os.path.basename(midi_filename)
     filename_raw = os.path.splitext(filename)[0]
@@ -183,7 +195,7 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
     file_results = open(dirname+"/"+filename_raw+"_key_approx-text_form.txt",'w')
     file_results.write(filename_raw+"\n")
     for i in range(0, e):
-      key_int = int(keys_approx[i,0])
-      file_results.write("In key: "+names[0,key_int]+" at time: "+ str(times_used[i,0])+"\n")
+      key_int = int(keys_final[i,0])
+      file_results.write("In key: "+names[0,key_int]+" at time: "+ str(times_final[i,0])+"\n")
     file_results.close()
   return keys_approx, names
