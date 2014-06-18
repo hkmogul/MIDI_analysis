@@ -19,7 +19,7 @@ def make_chroma_vector(chroma_slice):
 
 def get_approx_key(chroma_vector, keys):
   """Returns index of approximated key, and the score that this approximated key got"""
-  chroma_vector = chroma_vector[:]
+  # chroma_vector = chroma_vector[:]
   scores = []
   end = keys.shape[0] -1
   for i in range(0,end):
@@ -32,8 +32,10 @@ def get_approx_key(chroma_vector, keys):
 
 def get_key_score(chroma_vector, keys, key_index):
   """Returns the score of an approximated key, given the index of the key weights to try out"""
-  chroma_vector = np.rot90(chroma_vector,3)
+  # print chroma_vector.shape
+  # chroma_vector = np.rot90(chroma_vector,3)
   chroma_vector = chroma_vector[0,:]
+  # print chroma_vector.shape
   key_vector = keys[key_index,:]
   score = np.dot(key_vector,chroma_vector)
   return score
@@ -118,16 +120,11 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
     #make chroma slice based on time
       if times.size -t < measure_value:
         chroma_slice = chroma[:,round(times[t]*100):round(times[t+1]*100)]
-      # print chroma_slice
-      # vec = make_chroma_vector(chroma_slice)
         vec = np.sum(chroma_slice, axis=1)
-      # vec = vec[::-1]
       else:
         chroma_slice = chroma[:,round(times[t]*100):round(times[t+1]*100)]
-      # print chroma_slice
-      # vec = make_chroma_vector(chroma_slice)
+
         vec = np.sum(chroma_slice, axis=1)
-      # vec = vec[::-1]
       apr = get_approx_key(vec, key_weight)
       #if the score isn't 0 (which happens in silence), add the approximated key to the list
       if not apr[0,1] == 0:
@@ -142,7 +139,7 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
   #if it is a key change.  mark key change in final 2 column array of (key, time start)
   threshold = .15 #experimental value
   keys_final = np.array([[keys_approx[0,0]]])
-
+  current_key = keys_final[0,0]
   times_final = np.array([[times_used[0,0]]])
 
 
@@ -170,14 +167,31 @@ def identify_key(midi_filename, command_line_print = True, save_results = True, 
   #         print "difference not large enough to constitute key change "
   if times.size > 1:
     for t in range(1, keys_approx.shape[0]):
-      current = keys_approx[t,0]
-      prev = keys_approx[t-1,0]
+      key = keys_approx[t,0]
       # TODO: set up threshold experiment to check for % difference in key change
-      if current != prev:
+      if key != current_key:
+        print "KEY CHANGE?"
         # in the meantime, just put any that are different up
-        keys_final = np.vstack((keys_final, np.array([[current]])))
-        times_final = np.vstack((times_final, np.array([[times_used[t,0]]])))
+        # keys_final = np.vstack((keys_final, np.array([[current]])))
+        # times_final = np.vstack((times_final, np.array([[times_used[t,0]]])))
+        #first, get score of this approximated key
+        current_score = keys_approx[t,1]
+        print current_score
+        #get vector of this range
+        # vec = make_chroma_vector(chroma[:,round(times[t]*100):round(times[t+1])*100] )
+        chroma_slice = chroma[:,round(times[t]*100):round(times[t+1]*100)]
+        vec = np.sum(chroma_slice, axis=1)
+        #get what the score would be if we assumed it was the previous key
+        print get_key_score(vec, key_weight, key)
 
+        speculated_score = get_key_score(vec, key_weight, current_key)
+        # get percent difference
+        diff = abs(current_score - speculated_score)/(0.5 *(current_score+speculated_score))
+        print diff
+        if diff > threshold:
+          keys_final = np.vstack((keys_final, np.array([[key]])))
+          times_final = np.vstack((times_final, np.array([[times_used[t,0]]])))
+          current_key = key
 
   e = keys_final.shape[0]
   if command_line_print:
